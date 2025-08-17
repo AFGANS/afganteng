@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teks Banyak</title>
+    <!-- Tailwind CSS CDN untuk styling yang cepat dan responsif -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tone.js CDN untuk membuat dan memainkan suara -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+    <style>
+      /* Mengatur font agar terlihat lebih baik */
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+      body {
+        font-family: 'Inter', sans-serif;
+      }
+      /* Animasi CSS untuk efek berkedip */
+      @keyframes blink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0; }
+      }
+      /* Animasi untuk efek warna bergelombang pada teks */
+      @keyframes color-wave {
+          0% { filter: hue-rotate(0deg); }
+          100% { filter: hue-rotate(360deg); }
+      }
+      /* Animasi untuk efek gambar jatuh dan menghilang */
+      @keyframes fall-and-fade {
+          0% {
+              transform: translateY(-10vh);
+              opacity: 1;
+          }
+          100% {
+              transform: translateY(110vh);
+              opacity: 0;
+          }
+      }
+      /* Animasi untuk efek glitch seperti GDI virus */
+      @keyframes gdi-glitch {
+          0% {
+              transform: translate(0, 0);
+              filter: hue-rotate(0deg) saturate(100%);
+          }
+          10% {
+              transform: translate(1px, -1px);
+              filter: hue-rotate(10deg) saturate(150%);
+          }
+          20% {
+              transform: translate(-1px, 1px);
+              filter: hue-rotate(20deg) saturate(100%);
+          }
+          30% {
+              transform: translate(2px, 2px);
+              filter: hue-rotate(30deg) saturate(200%);
+          }
+          40% {
+              transform: translate(-2px, -2px);
+              filter: hue-rotate(40deg) saturate(100%);
+          }
+          50% {
+              transform: translate(3px, 0);
+              filter: hue-rotate(50deg) saturate(150%);
+          }
+          60% {
+              transform: translate(-3px, 1px);
+              filter: hue-rotate(60deg) saturate(200%);
+          }
+          70% {
+              transform: translate(2px, -1px);
+              filter: hue-rotate(70deg) saturate(100%);
+          }
+          80% {
+              transform: translate(-1px, 2px);
+              filter: hue-rotate(80deg) saturate(150%);
+          }
+          90% {
+              transform: translate(1px, -2px);
+              filter: hue-rotate(90deg) saturate(200%);
+          }
+          100% {
+              transform: translate(0, 0);
+              filter: hue-rotate(100deg) saturate(100%);
+          }
+      }
+
+      .trojan-text {
+        /* Hanya menyisakan animasi berkedip dan gelombang warna */
+        animation: blink 0.5s infinite, color-wave 1s infinite linear;
+        position: absolute; /* Memungkinkan gerakan di luar alur normal */
+        width: 100%; /* Menggunakan lebar penuh untuk teks panjang */
+        text-align: center;
+        transition-property: all;
+        transition-duration: 0.1s;
+        /* Membuat teks lebih responsif agar terlihat seimbang pada semua perangkat */
+        font-size: 5vw; 
+      }
+
+      .falling-image {
+        position: absolute;
+        animation: fall-and-fade 5s linear forwards;
+        width: 50px;
+        height: 50px;
+        z-index: 10;
+        object-fit: contain;
+      }
+      
+      .gdi-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: 1000;
+        background-color: rgba(0, 0, 0, 0.5); /* Semi-transparan untuk efek lag */
+        animation: gdi-glitch 0.2s infinite alternate; /* Menerapkan animasi glitch */
+        pointer-events: none; /* Memungkinkan klik melewati overlay */
+      }
+    </style>
+</head>
+<body class="bg-gray-900 text-white flex flex-col items-center justify-center min-h-screen p-4 overflow-hidden">
+
+    <!-- Konten awal yang akan dihapus saat tombol diklik -->
+    <div id="main-content" class="text-center flex flex-col items-center">
+        <h1 class="text-3xl sm:text-4xl md:text-5xl font-bold mb-8">Tekan Tombol di Bawah</h1>
+        <p class="mb-8 text-sm sm:text-base text-gray-400">Tombol ini akan menghapus semua teks dan menampilkan teks baru yang bergerak secara acak.</p>
+        
+        <!-- Input untuk mengganti URL gambar -->
+        <div class="mb-4 w-full max-w-sm flex flex-col items-center">
+            <input type="text" id="image-url-input" value="idr.jpg" placeholder="Masukkan URL gambar di sini" class="w-full p-2 mb-2 rounded-md bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-red-500">
+            <button id="change-image-btn" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-full shadow-lg hover:bg-blue-700 transition-colors duration-300">
+                Ganti Gambar
+            </button>
+            <p id="message-box" class="mt-2 text-sm text-green-400"></p>
+        </div>
+
+        <!-- Tombol yang akan memicu fungsi -->
+        <button id="magic-button" class="px-6 py-3 bg-red-600 text-white font-semibold rounded-full shadow-lg hover:bg-red-700 transition-colors duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
+            Klik Saya
+        </button>
+    </div>
+
+    <!-- Container untuk klon teks dan gambar yang akan muncul -->
+    <div id="text-container" class="relative w-full h-screen"></div>
+
+    <script>
+        // Mendapatkan referensi ke elemen-elemen HTML
+        const magicButton = document.getElementById('magic-button');
+        const mainContent = document.getElementById('main-content');
+        const textContainer = document.getElementById('text-container');
+        const imageInput = document.getElementById('image-url-input');
+        const changeImageBtn = document.getElementById('change-image-btn');
+        const messageBox = document.getElementById('message-box');
+
+        // Teks yang akan ditampilkan dan dikloning
+        const longText = '🫀:☠️𝕂𝕀𝕃𝕃𝔼𝗗-𝕀𝗢𝗦☠️☠️𝕂𝕀𝕃𝕃𝔼𝗗-𝕀𝗢𝗦☠️❗❗❗👿👿😈😈 ͢͢͢͢͢͢͢͢͢͢🥶𑜞͢VEGETA•ID°∆͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢☠️𝕂𝕀𝕃𝕃𝔼𝗗-𝕀𝗢𝗦☠️☠️𝕂𝗜𝕃𝕃𝔼𝗗-𝕀𝗢𝗦☠️❗❗❗👿👿😈😈 ͢͢͢͢͢͢͢͢͢͢🥶𑜞͢VEGETA•ID°∆͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢☠️𝕂𝕀𝕃𝕃𝔼𝗗-𝕀𝗢𝗦☠️☠️𝕂𝗜𝕃𝕃𝔼𝗗-𝕀𝗢𝗦☠️❗❗❗👿👿😈😈 ͢͢͢͢͢͢͢͢͢͢🥶𑜞͢VEGETA•ID°∆͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢☠️𝕂𝕀𝕃𝕃𝔼𝗗-𝕀𝗢𝗦☠️☠️𝕂𝗜𝕃𝕃𝔼𝗗-𝕀𝗢𝗦☠️❗❗❗👿👿😈😈 ͢͢͢͢͢͢͢͢͢͢🥶𑜞͢VEGETA•ID°∆͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢☠️𝕂𝕀𝕃𝕃𝔼𝗗-𝕀𝗢𝗦☠️☠️𝕂𝗜𝕃𝕃𝔼𝗗-𝕀𝗢𝗦☠️❗❗❗👿👿😈😈 ͢͢͢͢͢͢͢͢͢͢🥶𑜞͢VEGETA•ID°∆͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢☠️𝕂𝕀𝕃𝕃𝔼𝗗-𝕀𝗢𝗦☠️☠️𝕂𝗜𝕃𝕃𝔼𝗗-𝕀𝗢𝗦☠️❗❗❗👿👿😈😈 ͢͢͢͢͢͢͢͢͢͢🥶𑜞͢☠️𝕂𝕀𝕃𝕃𝔼𝗗-𝕀𝗢𝗦☠️☠️𝕂𝗜𝕃𝕃𝔼𝗗-𝕀𝗢𝗦☠️❗❗❗👿👿😈😈 ͢͢͢͢͢͢͢͢͢͢🥶𑜞͢VEGETA•ID°∆͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢•ID°∆͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢☠️𝕂𝕀𝕃𝕃𝔼𝗗-𝕀𝗢𝗦☠️☠️𝕂𝗜𝕃𝕃𝔼𝗗-𝕀𝗢𝗦☠️❗❗❗👿👿😈😈 ͢͢͢͢͢͢͢͢͢͢🥶𑜞͢VEGETA•ID°∆͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢͢☠️𝕂𝕀𝕃𝕃𝔼𝗗-𝕀𝗢𝗦☠️☠️';
+
+        // URL gambar default
+        let currentImageUrl = `idr.jpg`;
+        
+        // Array warna yang akan digunakan untuk teks
+        const colors = ['text-red-400', 'text-yellow-400', 'text-green-400', 'text-blue-400', 'text-purple-400', 'text-pink-400'];
+
+        // Menentukan URL file audio
+        const audioUrl = 'idfu.MP4';
+        
+        // Membuat Tone.Player untuk memuat file audio
+        const player = new Tone.Player(audioUrl).toDestination();
+
+        // Event listener untuk tombol "Ganti Gambar"
+        changeImageBtn.addEventListener('click', () => {
+            const newUrl = imageInput.value;
+            if (newUrl) {
+                currentImageUrl = newUrl;
+                messageBox.textContent = 'URL gambar berhasil diperbarui!';
+                messageBox.classList.remove('text-red-400');
+                messageBox.classList.add('text-green-400');
+            } else {
+                messageBox.textContent = 'URL tidak boleh kosong!';
+                messageBox.classList.remove('text-green-400');
+                messageBox.classList.add('text-red-400');
+            }
+        });
+
+        // Menambahkan event listener ke tombol "Klik Saya"
+        magicButton.addEventListener('click', async () => {
+            // Memulai konteks audio
+            await Tone.start();
+
+            // Sembunyikan konten awal
+            mainContent.style.display = 'none';
+            document.body.classList.remove('justify-center', 'items-center');
+            document.body.classList.add('flex', 'flex-wrap');
+
+            // Membuat overlay untuk efek GDI virus
+            const gdiOverlay = document.createElement('div');
+            gdiOverlay.className = 'gdi-overlay';
+            document.body.appendChild(gdiOverlay);
+
+            // Memainkan suara
+            if (player.loaded) {
+                player.start();
+            } else {
+                player.onload = () => player.start();
+            }
+
+            // Fungsi untuk membuat klon teks pada interval yang ditentukan
+            const textIntervalId = setInterval(() => {
+                const newTextClone = document.createElement('div');
+                newTextClone.textContent = longText;
+                const randomColor = colors[Math.floor(Math.random() * colors.length)];
+                newTextClone.className = `trojan-text ${randomColor}`;
+                newTextClone.style.top = `${Math.random() * 95}vh`;
+                newTextClone.style.left = `${Math.random() * 95}vw`;
+                textContainer.appendChild(newTextClone);
+            }, 1); // 1ms = 0.001 detik
+
+            // Fungsi untuk membuat klon gambar pada interval yang ditentukan
+            const imageIntervalId = setInterval(() => {
+                for (let i = 0; i < 10; i++) {
+                    const newImageClone = document.createElement('img');
+                    
+                    // Menggunakan URL gambar yang sedang aktif
+                    newImageClone.src = currentImageUrl; 
+                    newImageClone.onerror = function() {
+                        this.src = 'https://placehold.co/50x50/000000/ff0000?text=❗';
+                        this.onerror = null; // Menghindari loop tak terbatas
+                    };
+
+                    // Menambahkan styling, kelas animasi ke klon gambar
+                    newImageClone.className = 'falling-image';
+                    
+                    // Mengatur posisi acak untuk klon gambar
+                    newImageClone.style.left = `${Math.random() * 95}vw`;
+                    
+                    // Mengatur durasi animasi secara acak untuk efek yang lebih alami
+                    const duration = 2 + Math.random() * 3; // Durasi antara 2-5 detik
+                    newImageClone.style.animationDuration = `${duration}s`;
+                    
+                    // Menambahkan klon gambar ke wadah
+                    textContainer.appendChild(newImageClone);
+
+                    // Menghapus gambar setelah animasinya selesai untuk menghemat memori
+                    setTimeout(() => {
+                        newImageClone.remove();
+                    }, duration * 1000);
+                }
+            }, 100); // 100ms
+        });
+    </script>
+
+</body>
+</html>
